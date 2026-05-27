@@ -809,15 +809,20 @@ function setupInteractions(): void {
       try {
         const aiContent = await petController.chat(prompt);
         isThinkingLocked = false;
-        updateBubble(aiContent || '唔...香澄有点看不懂这段内容，能换一种方式解释吗？');
-        updatePetState('HAPPY');
-        bubblePermanent = true;
+        const content = aiContent?.trim();
+        if (!content || content.length < 2) {
+          updatePetState('IDLE', '诶？香澄没有收到回复呢...可能是 API 连接不稳定，再试一次？');
+        } else {
+          // 用 customQuote 传 AI 回复，避免 updatePetState 内部覆盖
+          updatePetState('HAPPY', content);
+          // bubblePermanent 必须在 updatePetState 之后设置（内部会重置）
+          bubblePermanent = true;
+        }
         pendingClipboardContent = '';
       } catch (e) {
         console.error('Clipboard analysis error:', e);
         isThinkingLocked = false;
-        updateBubble('抱歉，分析出错了，请检查 API Key 配置。');
-        updatePetState('IDLE');
+        updatePetState('IDLE', '抱歉，分析出错了，请检查 API Key 配置。');
       }
     });
   }
@@ -1140,14 +1145,19 @@ function startClipboardChecker(): void {
         lastClipboardContent = currentContent;
 
         // 检测是否是代码、报错、或英文文本
-        const isCode = /function|const |let |var |class |import |export |=>|async |await |\.then\(|\.catch\(|require\(|import\(|from ['"]|\.map\(|\.filter\(|\.reduce\(|console\./.test(currentContent);
+        // 多语言代码特征
+        const codePatterns = /function|const |let |var |class |import |export |=>|async |await |def |fn |func |pub |impl |struct |enum |trait |#include|#!\/|println!/;
+        const codeSymbols = /[{};]\s*$|^\s*[#/]|=>|::|->|\breturn\b\s/m;
+        const isCode = codePatterns.test(currentContent) || codeSymbols.test(currentContent);
+
         const hasError = /error|Error|错误|Exception|failed|Failed|Traceback|panic|stack trace/i.test(currentContent);
 
-        // 检测是否是大段英文（英文字符占比 >60% 且总长度 >100）
+        // 检测是否是大段英文：先排除代码，再检查英文字符占比
         const englishChars = (currentContent.match(/[a-zA-Z]/g) || []).length;
         const totalChars = currentContent.replace(/\s/g, '').length;
         const englishRatio = totalChars > 0 ? englishChars / Math.min(totalChars, 500) : 0;
-        const isEnglish = !isCode && !hasError && englishRatio > 0.6 && englishChars > 80;
+        // 英文必须：英文字符 >100，占比 >70%，且不含代码特征
+        const isEnglish = !isCode && !hasError && englishRatio > 0.7 && englishChars > 100;
 
         const hasInterest = isCode || hasError || isEnglish || currentContent.length > 80;
 
