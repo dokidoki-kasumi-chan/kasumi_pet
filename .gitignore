@@ -1,7 +1,6 @@
 .claude/
 .DS_Store
 *.log
-*.dmg
 rag/data/
 docs/
 
