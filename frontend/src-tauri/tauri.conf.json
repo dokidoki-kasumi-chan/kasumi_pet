@@ -1,0 +1,112 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev",
+    "devPath": "http://localhost:1420",
+    "distDir": "../dist",
+    "withGlobalTauri": true
+  },
+  "package": {
+    "productName": "mibo",
+    "version": "2.3.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false,
+      "shell": {
+        "all": false,
+        "open": true
+      },
+      "window": {
+        "all": false,
+        "close": true,
+        "hide": true,
+        "show": true,
+        "startDragging": true,
+        "setSize": true
+      },
+      "http": {
+        "all": false,
+        "request": true,
+        "scope": ["http://localhost:8000/*"]
+      },
+      "clipboard": {
+        "all": false,
+        "readText": true,
+        "writeText": false
+      }
+    },
+    "windows": [
+      {
+        "label": "main",
+        "fullscreen": false,
+        "resizable": false,
+        "title": "mibo - 学习伴侣",
+        "width": 400,
+        "height": 150,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "center": true,
+        "visible": true
+      },
+      {
+        "label": "settings",
+        "url": "settings.html",
+        "fullscreen": false,
+        "resizable": false,
+        "title": "香澄的设置",
+        "width": 450,
+        "height": 500,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "center": true,
+        "visible": false
+      }
+    ],
+    "bundle": {
+      "active": true,
+      "category": "Developer Tool",
+      "copyright": "",
+      "deb": {
+        "depends": []
+      },
+      "externalBin": [],
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ],
+      "identifier": "com.kasumipet.app",
+      "longDescription": "",
+      "macOS": {
+        "entitlements": null,
+        "exceptionDomain": "",
+        "frameworks": [],
+        "providerShortName": null,
+        "signingIdentity": null
+      },
+      "resources": ["characters/**"],
+      "shortDescription": "",
+      "targets": "all",
+      "windows": {
+        "certificateThumbprint": null,
+        "digestAlgorithm": "sha256",
+        "timestampUrl": ""
+      }
+    },
+    "security": {
+      "csp": null
+    },
+    "updater": {
+      "active": false
+    },
+    "macOSPrivateApi": true
+  }
+}

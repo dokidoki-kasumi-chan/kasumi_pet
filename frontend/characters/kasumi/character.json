@@ -1,0 +1,160 @@
+{
+  "id": "kasumi",
+  "name": { "ja": "戸山 香澄", "en": "Kasumi Toyama", "zh": "户山香澄" },
+  "band": "Poppin'Party",
+  "color": "#FF5522",
+  "windowTitle": "mibo - 学习伴侣",
+
+  "states": {
+    "IDLE":       { "image": "images/idle/idel.png" },
+    "THINKING":   { "image": "images/thinking/thinking.png" },
+    "SHY":        { "image": "images/emotions/shy.png",       "duration": 5000 },
+    "HAPPY":      { "image": "images/emotions/happy.png",     "duration": 5000 },
+    "SLEEPY":     { "image": "images/emotions/sleepy.png",    "duration": 5000 },
+    "SURPRISED":  { "image": "images/emotions/surprised.png", "duration": 5000 },
+    "ANGRY":      { "image": "images/emotions/angry.png",     "duration": 5000 },
+    "YAWN":       { "image": "images/actions/yawn.png",       "duration": 5000 },
+    "POKED":      { "image": "images/actions/poke.png",       "duration": 5000 },
+    "CELEBRATE":  { "image": "images/actions/celebrate.png",  "duration": 5000 },
+    "SLEEP":      { "image": "images/sleep/sleep.png" },
+    "EATING":     { "image": "images/eating/eating.png",      "duration": 5000 },
+    "SLY_SMILE":  { "image": "images/emotions/slysmile.png" }
+  },
+
+  "quotes": {
+    "IDLE": {
+      "state": [
+        "今天也要找到闪闪发光让人心跳加速的事情喔！✨",
+        "Kira Kira~ 今天也要加油！",
+        "星星在发光呢，你也一样！"
+      ],
+      "ambient": [
+        "今天也要加油哦！",
+        "Kira Kira~♪",
+        "星星在发光呢✨",
+        "好想玩音乐呀...",
+        "你看你看，今天也很棒！",
+        "学习辛苦啦~",
+        "我会一直陪着你的！"
+      ]
+    },
+    "THINKING": {
+      "state": ["唔……香澄正在拼命思考中！虽然脑袋有点不够用了……"],
+      "ambient": [
+        "嗯...让我想想...☆",
+        "这个问题...很有趣呢...",
+        "思考中...别急哦！",
+        "让我查查看..."
+      ],
+      "thinkingLocked": ["别闹，我正在认真思考呢..."]
+    },
+    "SHY": {
+      "state": ["欸……一直盯着我看，会有奇怪的感觉啦……"],
+      "ambient": [
+        "欸嘿...别这样...",
+        "好害羞...",
+        "真是的啦...",
+        "不要一直盯着我看啦..."
+      ]
+    },
+    "HAPPY": {
+      "state": [
+        "Kira - kira Doki - doki！大成功啦！我们果然是最棒的！",
+        "太好了！闪闪发光的感觉！"
+      ],
+      "ambient": [
+        "太棒了！Kira Kira Doki Doki! ✨",
+        "哇！好厉害呀！",
+        "星星说你做得超好！",
+        "不愧是你！满分！",
+        "继续加油哦！"
+      ]
+    },
+    "SLEEPY": {
+      "state": ["呼哇……眼睛有点睁不开了，是不是该稍微休息一下啦？"],
+      "ambient": [
+        "学了好久了，休息一下吧~",
+        "身体要紧，放松放松☆",
+        "要不要喝杯水？",
+        "累了吧？休息一会儿~"
+      ]
+    },
+    "SURPRISED": {
+      "state": ["哇啊！吓我一跳！发现什么有趣的事情了吗？"],
+      "ambient": ["哇！", "呀！", "诶？！", "怎么了？"]
+    },
+    "ANGRY": {
+      "state": ["真是的！再这样捣乱，我就要没收你的拨片了哦！"],
+      "ambient": ["唔...", "那个...", "不要这样啦..."]
+    },
+    "YAWN": {
+      "state": ["啊——（哈欠）感觉听到星星在唱摇篮曲了呢……"],
+      "ambient": ["哈欠~", "好困啊...", "有点累了...", "哈呜..."]
+    },
+    "POKED": {
+      "state": ["嘿嘿，戳这里也没用喔！想听我唱歌吗？"],
+      "ambient": ["戳？", "欸？", "干什么呢..."]
+    },
+    "CELEBRATE": {
+      "state": ["耶！全宇宙最耀眼的完成度！要不要一起办个Live庆祝一下！"],
+      "ambient": ["成功了！Kira Kira! ✨", "太棒了！", "庆祝一下！"]
+    },
+    "SLEEP": {
+      "state": ["Zzz……满天的星星……都在闪闪发光呢……"],
+      "ambient": ["Zzz...", "呼...", "晚安..."]
+    },
+    "SLY_SMILE": {
+      "state": [
+        "嘿嘿，你在摸鱼吧...？",
+        "被我发现了！不好好学习在干嘛呢~",
+        "欸~ 这个不是学习窗口吧？香澄都看到了哦！"
+      ],
+      "ambient": [
+        "还在摸鱼呀...",
+        "该回来学习了吧~",
+        "香澄可一直在看着哦！"
+      ],
+      "persist": [
+        "喂喂，该回来了吧！已经摸鱼好久了！",
+        "差不多该学习了！香澄有点生气啦~",
+        "还在玩？星星都要睡着了！快点回来学习！"
+      ]
+    },
+    "EATING": {
+      "state": ["肚子咕噜噜叫了……如果在吃点心和弹吉他之间选，我全都要！"],
+      "ambient": ["吃饭时间到！", "好吃的！", "感谢款待！☆", "饭要好好吃哦！"]
+    },
+    "SLY_SMILE": {
+      "state": ["诶嘿嘿...你在摸鱼吧？被我发现啦~"],
+      "ambient": ["嘿嘿，偷懒被我发现了！", "你还好意思摸鱼啊~"],
+      "persist": ["喂喂，该回来了吧！星星都等急了！"]
+    }
+  },
+
+  "reminders": {
+    "water": ["喝水时间！记得补充水分~"],
+    "lunch": ["中午啦！记得吃饭哦~", "午饭时间到！好好吃饭才能继续加油哦！"],
+    "dinner": ["晚饭时间到了！", "晚饭时间到！今天辛苦啦~"],
+    "rest": ["休息一下吧？坐太久了哦"]
+  },
+
+  "greetings": {
+    "night": ["这么晚还在吗？早点休息吧..."],
+    "morning": ["早上好！今天也要加油哦！"],
+    "midMorning": ["你好！今天学习得怎么样？"],
+    "noon": ["下午好！吃了吗？"],
+    "afternoon": ["下午好！继续加油！"],
+    "evening": ["晚上好！今天辛苦了~"],
+    "lateNight": ["夜深了，早点休息吧..."]
+  },
+
+  "schedule": {
+    "lunchTime": "12:00",
+    "dinnerTime": "18:30",
+    "sleepStartHour": 23,
+    "sleepEndHour": 6,
+    "restReminderIntervalMin": 120,
+    "idleTimeoutMin": 30,
+    "yawnTimeoutMin": 10
+  }
+}

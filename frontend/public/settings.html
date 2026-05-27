@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>香澄的设置</title>
+  <link rel="stylesheet" href="./settings.css" />
+</head>
+<body>
+  <div class="settings-container">
+    <!-- 标题栏：可拖拽 -->
+    <div class="settings-header" data-tauri-drag-region>
+      <span class="header-title">香澄的设置</span>
+    </div>
+
+    <div class="settings-content">
+      <!-- API 供应商选择 -->
+      <div class="setting-group">
+        <label for="api-provider">模型供应商</label>
+        <select id="api-provider" class="settings-select">
+          <option value="zhipu">智谱 AI (Zhipu)</option>
+          <option value="openai">OpenAI</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="custom">自定义</option>
+        </select>
+        <small class="help-text">选择 AI 服务提供商</small>
+      </div>
+
+      <!-- API Key 设置 -->
+      <div class="setting-group">
+        <label for="api-key">API Key</label>
+        <input type="password" id="api-key" placeholder="输入大模型 API Key" class="settings-input">
+        <small class="help-text">用于调用大模型 API</small>
+      </div>
+
+      <!-- API 地址 -->
+      <div class="setting-group" id="api-url-group">
+        <label for="api-url">API 地址</label>
+        <input type="text" id="api-url" placeholder="自动填充" class="settings-input">
+        <small class="help-text">大模型 API 端点，自定义供应商可修改</small>
+      </div>
+
+      <!-- 模型名称 -->
+      <div class="setting-group" id="model-name-group">
+        <label for="model-name">模型名称</label>
+        <input type="text" id="model-name" placeholder="自动填充" class="settings-input">
+        <small class="help-text">使用的大模型，自定义供应商可修改</small>
+      </div>
+
+      <!-- 角色选择 -->
+      <div class="setting-group">
+        <label for="character-select">桌宠角色</label>
+        <select id="character-select" class="settings-select">
+          <!-- JS 动态填充 -->
+        </select>
+        <small class="help-text">切换不同角色，好感度独立记录</small>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="settings-actions">
+        <button id="save-settings" class="save-btn">保存</button>
+        <button id="cancel-settings" class="cancel-btn">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./settings.js"></script>
+</body>
+</html>

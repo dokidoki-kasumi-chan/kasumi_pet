@@ -1,0 +1,301 @@
+/* ===== 全局样式 ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --primary-color: #ff6b9d;
+  --bubble-bg: #ffffff;
+  --bubble-border: #ff6b9d;
+}
+
+html {
+  background: transparent;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ===== 主容器 - 透明背景 ===== */
+#app {
+  background: transparent;
+
+  /* Flexbox 布局 */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 10px;
+
+  /* 固定尺寸，填满窗口 */
+  width: 400px;
+  height: 150px;
+
+  box-sizing: border-box;
+}
+
+/* ===== 左侧：人物立绘区域 ===== */
+#pet-section {
+  width: 90px;
+  height: 130px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  user-select: none;
+}
+
+/* 漂浮动画容器 */
+#pet-image-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  animation: float 3s ease-in-out infinite;
+}
+
+/* 设置/拖动按钮 */
+#drag-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: move;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+  z-index: 100;
+}
+
+#drag-handle:hover {
+  opacity: 1;
+}
+
+/* 双缓冲立绘：两张图叠放，visible 控制显示 */
+.pet-sprite {
+  position: absolute;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  opacity: 0;
+  transition: none;
+}
+
+.pet-sprite.visible {
+  opacity: 1;
+}
+
+/* 浮动动画 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* ===== 右侧：动态内容区 ===== */
+#content-section {
+  flex: 1;
+  height: 130px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* 对话气泡 - 可扩展到 6 行，超出滚动 */
+.chat-bubble {
+  background: var(--bubble-bg);
+  border: 2px solid var(--bubble-border);
+  border-radius: 16px;
+  padding: 6px 10px;
+  max-width: 200px;
+  max-height: 120px; /* 约 6 行高度 */
+  word-wrap: break-word;
+  font-size: 11px;
+  color: #333;
+  box-shadow: 0 3px 10px rgba(255, 107, 157, 0.2);
+  line-height: 1.4;
+  position: relative;
+  overflow-y: auto; /* 超出滚动 */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(255, 107, 157, 0.3) transparent;
+}
+
+/* Webkit 滚动条样式 */
+.chat-bubble::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chat-bubble::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-bubble::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 157, 0.3);
+  border-radius: 2px;
+}
+
+.chat-bubble::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 157, 0.5);
+}
+
+.chat-bubble::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: var(--bubble-border);
+}
+
+/* 操作区域 */
+#action-area {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 聊天按钮 */
+.chat-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 5px 14px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(255, 107, 157, 0.2);
+}
+
+.chat-btn:hover {
+  background: #ff85b1;
+  box-shadow: 0 3px 8px rgba(255, 107, 157, 0.3);
+}
+
+.chat-btn:active {
+  transform: scale(0.95);
+}
+
+.chat-btn.hidden {
+  display: none;
+}
+
+/* 剪贴板助手按钮 — 粉色边框风格，与实心聊天按钮区分 */
+.clipboard-help-btn {
+  background: rgba(255, 255, 255, 0.9);
+  color: #ff6b9d;
+  border: 1.5px solid #ff6b9d;
+  animation: pulse-help 1.5s ease-in-out infinite;
+}
+
+.clipboard-help-btn:hover {
+  background: #fff0f5;
+  border-color: #ff85b1;
+  color: #ff85b1;
+}
+
+@keyframes pulse-help {
+  0%, 100% { box-shadow: 0 2px 6px rgba(255, 107, 157, 0.15); }
+  50% { box-shadow: 0 4px 14px rgba(255, 107, 157, 0.35); }
+}
+
+/* 输入区域 */
+.input-area {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+}
+
+.input-area.hidden {
+  display: none;
+}
+
+#chat-input {
+  flex: 1;
+  border: 2px solid var(--bubble-border);
+  border-radius: 10px;
+  padding: 5px 10px;
+  font-size: 11px;
+  outline: none;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+#chat-input:focus {
+  border-color: var(--primary-color);
+}
+
+#chat-input::placeholder {
+  color: #999;
+  font-size: 11px;
+}
+
+/* 发送按钮 */
+.send-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.send-btn:hover {
+  background: #ff85b1;
+}
+
+.send-btn:active {
+  transform: scale(0.95);
+}
+
+/* ===== 番茄钟按钮 ===== */
+.pomodoro-btn {
+  background: rgba(255, 255, 255, 0.9);
+  color: #ff7043;
+  border: 1.5px solid #ff7043;
+  animation: pulse-pomodoro 1.5s ease-in-out infinite;
+}
+
+.pomodoro-btn:hover {
+  background: #fff3e0;
+}
+
+@keyframes pulse-pomodoro {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 112, 67, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 112, 67, 0); }
+}
+
+
+

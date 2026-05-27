@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mibo - 学习伴侣桌宠</title>
+  <link rel="stylesheet" href="/src/styles/main.css" />
+</head>
+<body>
+  <!-- 主容器：透明背景 -->
+  <div id="app">
+    <!-- 左侧：人物立绘区域 -->
+    <div id="pet-section">
+      <!-- 左上角：设置/拖动按钮 -->
+      <div id="drag-handle" data-tauri-drag-region title="拖动窗口 | 单击打开设置">⚙️</div>
+      <!-- 演浮动画容器（双缓冲：两张图交替显示，消除切换残影） -->
+      <div id="pet-image-wrapper">
+        <img id="pet-image-a" class="pet-sprite visible" src="/images/idle/idel.png" alt="户山香澄" draggable="false" />
+        <img id="pet-image-b" class="pet-sprite" alt="户山香澄" draggable="false" />
+      </div>
+    </div>
+
+    <!-- 右侧：动态内容区 -->
+    <div id="content-section">
+      <!-- 气泡 - 始终显示 -->
+      <div id="chat-bubble" class="chat-bubble">
+        <span id="chat-text">你好呀！</span>
+      </div>
+
+      <!-- 操作区域：按钮和输入框切换 -->
+      <div id="action-area">
+        <!-- 默认：聊天按钮 -->
+        <button id="chat-btn" class="chat-btn">聊天</button>
+
+        <!-- 剪贴板助手按钮 -->
+        <button id="clipboard-help-btn" class="chat-btn clipboard-help-btn hidden">帮看看？</button>
+
+        <!-- 番茄钟启动按钮 -->
+        <button id="pomodoro-btn" class="chat-btn pomodoro-btn hidden">番茄钟？</button>
+
+        <!-- 输入模式：输入框 + 发送按钮 -->
+        <div id="input-area" class="input-area hidden">
+          <input type="text" id="chat-input" placeholder="和香澄说点什么..." autocomplete="off" />
+          <button id="send-btn" class="send-btn">发送</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

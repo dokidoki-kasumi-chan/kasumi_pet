@@ -1,0 +1,15 @@
+.claude/
+.DS_Store
+*.log
+*.dmg
+rag/data/
+docs/
+
+# 角色图片资源（仅通过 DMG Releases 分发）
+frontend/characters/*/images/
+frontend/public/images/
+frontend/src-tauri/characters/*/images/
+
+# 杂项
+ 状态图/
+基础图/
