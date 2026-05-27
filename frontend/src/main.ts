@@ -1145,19 +1145,34 @@ function startClipboardChecker(): void {
         lastClipboardContent = currentContent;
 
         // 检测是否是代码、报错、或英文文本
-        // 多语言代码特征
-        const codePatterns = /function|const |let |var |class |import |export |=>|async |await |def |fn |func |pub |impl |struct |enum |trait |#include|#!\/|println!/;
-        const codeSymbols = /[{};]\s*$|^\s*[#/]|=>|::|->|\breturn\b\s/m;
-        const isCode = codePatterns.test(currentContent) || codeSymbols.test(currentContent);
+        // 报错：关键词 + 堆栈模式
+        const hasError = /error|Error|错误|Exception|failed|Failed|Traceback|panic|stack ?trace|at \S+\.\w+:\d+/i.test(currentContent);
 
-        const hasError = /error|Error|错误|Exception|failed|Failed|Traceback|panic|stack trace/i.test(currentContent);
+        // 代码：用结构特征而非关键词
+        const lines = currentContent.split('\n');
+        const nonEmptyLines = lines.filter(l => l.trim());
+        // 特殊符号密度（代码括号、运算符）
+        const codeSpecials = (currentContent.match(/[{}()\[\];=<>|&!+\-*\/%^@#$:~]/g) || []).length;
+        const alphanumeric = (currentContent.match(/[a-zA-Z0-9]/g) || []).length;
+        const specialDensity = alphanumeric > 0 ? codeSpecials / alphanumeric : 0;
+        // 行末特征：以 ; { } : 结尾的行占比
+        const codeEndingLines = nonEmptyLines.filter(l => /[;{}:]\s*$/.test(l.trim())).length;
+        const codeEndingRatio = nonEmptyLines.length > 0 ? codeEndingLines / nonEmptyLines.length : 0;
+        // 缩进行（以空格或 tab 开头）占比
+        const indentedLines = nonEmptyLines.filter(l => /^[\t ]{2,}/.test(l)).length;
+        const indentRatio = nonEmptyLines.length > 0 ? indentedLines / nonEmptyLines.length : 0;
+        // 注释行
+        const hasComments = /^\s*(\/\/|#|--|\/\*|\*)\s/m.test(currentContent);
+        // 综合判断：符号密度高 或 行末代码特征明显 或 缩进+注释
+        const isCode = specialDensity > 0.25 || codeEndingRatio > 0.4 || (indentRatio > 0.3 && hasComments);
 
-        // 检测是否是大段英文：先排除代码，再检查英文字符占比
+        // 英文：英文字符占比高 + 自然语言特征
         const englishChars = (currentContent.match(/[a-zA-Z]/g) || []).length;
         const totalChars = currentContent.replace(/\s/g, '').length;
         const englishRatio = totalChars > 0 ? englishChars / Math.min(totalChars, 500) : 0;
-        // 英文必须：英文字符 >100，占比 >70%，且不含代码特征
-        const isEnglish = !isCode && !hasError && englishRatio > 0.7 && englishChars > 100;
+        // 常见英文功能词（小写）
+        const funcWordCount = (currentContent.match(/\b(the|a|an|is|are|was|were|has|have|will|would|could|should|this|that|with|from|for|and|not|but|you|your)\b/gi) || []).length;
+        const isEnglish = !isCode && !hasError && englishRatio > 0.6 && englishChars > 100 && funcWordCount >= 3;
 
         const hasInterest = isCode || hasError || isEnglish || currentContent.length > 80;
 
