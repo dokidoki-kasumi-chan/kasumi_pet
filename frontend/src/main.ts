@@ -170,7 +170,7 @@ function startActivityMonitor(): void {
 // 思考锁定状态（THINKING期间屏蔽所有交互）
 let isThinkingLocked = false;
 
-// AI 回答锁定：回答后 2 分钟内禁止一切状态/气泡变更（最高优先级）
+// AI 回答锁定：回答后 1 分钟内禁止交互改变状态/气泡（最高优先级）
 let responseLocked = false;
 let responseLockTimer: number | null = null;
 // 气泡永久驻留标志（输出结果后气泡不自动消失）
@@ -350,9 +350,6 @@ function stripMarkdown(text: string): string {
  * 更新气泡内容
  */
 function updateBubble(text: string): void {
-  // 回答锁期间不更新气泡（最高优先级）
-  if (responseLocked) return;
-
   // 先清理可能存在的重复气泡
   cleanupDuplicateBubbles();
 
@@ -370,8 +367,8 @@ function updateBubble(text: string): void {
  * 检查是否允许切换状态
  */
 function canChangeState(newState: string): boolean {
-  // 回答锁定期间：禁止一切状态变更（最高优先级，THINKING 除外——思考阶段仍可工作）
-  if (responseLocked && newState !== 'THINKING') {
+  // 回答锁定期间：禁止交互触发状态变更（AI 回复流程 THINKING/CELEBRATE/HAPPY 除外）
+  if (responseLocked && newState !== 'THINKING' && newState !== 'CELEBRATE' && newState !== 'HAPPY') {
     console.log('🚫 回答锁定中，禁止状态切换');
     return false;
   }
@@ -432,8 +429,8 @@ function updatePetState(state: string, customQuote?: string): void {
     return;
   }
 
-  // 记录状态切换时间（IDLE/THINKING/SLEEP除外）
-  if (state !== 'IDLE' && state !== 'THINKING' && state !== 'SLEEP') {
+  // 记录状态切换时间（IDLE/THINKING/SLEEP/CELEBRATE/HAPPY 不触发冷却）
+  if (state !== 'IDLE' && state !== 'THINKING' && state !== 'SLEEP' && state !== 'CELEBRATE' && state !== 'HAPPY') {
     lastStateChangeTime = Date.now();
     // 用户交互触发的新状态清除 AI 回复持久标志
     if (bubblePermanent) {
@@ -492,10 +489,10 @@ function updatePetState(state: string, customQuote?: string): void {
   );
 
   // 错误消息不设置自动恢复定时器
-  if (!isErrorMessage && config.duration && state !== 'IDLE' && state !== 'THINKING' && state !== 'SLEEP') {
+  if (!isErrorMessage && config.duration && state !== 'IDLE' && state !== 'THINKING' && state !== 'SLEEP' && !responseLocked) {
     const duration = customQuote ? 30000 : config.duration;
     stateTimer = window.setTimeout(() => {
-      console.log('=== Auto return to IDLE ===');
+      if (responseLocked) return; // 回答锁期间不自动恢复
       // 双缓冲切回 IDLE 立绘
       const hidden = getHiddenSprite();
       if (hidden && !spriteSwitching) {
@@ -837,8 +834,8 @@ function setupInteractions(): void {
           updatePetState('IDLE', '诶？香澄没有收到回复呢...可能是 API 连接不稳定，再试一次？');
         } else {
           // 用 customQuote 传 AI 回复，然后启动 2 分钟锁
-          updatePetState('HAPPY', content);
           startResponseLock();
+          updatePetState('HAPPY', content);
         }
         pendingClipboardContent = '';
       } catch (e) {
@@ -1042,8 +1039,8 @@ function isErrorMessage(text: string): boolean {
  * 清理状态，恢复 IDLE
  */
 /**
- * 启动 AI 回答锁定（2 分钟，最高优先级）
- * 锁结束后恢复番茄钟气泡或切回 IDLE
+ * 启动 AI 回答锁定（1 分钟，最高优先级）
+ * 锁期间保持 HAPPY/CELEBRATE 立绘，结束后切回 IDLE 或恢复番茄钟
  */
 function startResponseLock(): void {
   responseLocked = true;
@@ -1061,7 +1058,7 @@ function startResponseLock(): void {
     } else {
       updatePetState('IDLE');
     }
-  }, 2 * 60 * 1000); // 2 分钟
+  }, 1 * 60 * 1000); // 1 分钟
 }
 
 function resetToIdle(): void {
@@ -1094,11 +1091,16 @@ async function sendMessage(): Promise<void> {
   // 切换回聊天按钮模式
   switchToChatButtonMode();
 
-  // 清理之前的定时器和气泡驻留标志
+  // 清理之前的定时器、回答锁和气泡驻留标志
   if (cleanupTimer) {
     clearTimeout(cleanupTimer);
     cleanupTimer = null;
   }
+  if (responseLockTimer) {
+    clearTimeout(responseLockTimer);
+    responseLockTimer = null;
+  }
+  responseLocked = false;
   bubblePermanent = false;
 
   // 第一阶段：THINKING 状态 + 固定台词，并启动锁定
@@ -1139,8 +1141,8 @@ async function sendMessage(): Promise<void> {
     // 第三阶段：4秒后显示 AI 内容，启动 2 分钟回答锁
     const finalContent = aiContent;
     setTimeout(() => {
-      updatePetState('HAPPY', finalContent);
       startResponseLock();
+      updatePetState('HAPPY', finalContent);
     }, 4000);
 
   } catch (error) {
