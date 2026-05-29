@@ -114,7 +114,7 @@ function handleSlackingEnd(): void {
 
 function startActivityMonitor(): void {
   window.setInterval(async () => {
-    if (isThinkingLocked || isInputting || currentState === 'SLEEP') return;
+    if (responseLocked || isThinkingLocked || isInputting || currentState === 'SLEEP') return;
 
     // 1. B站摸鱼检测
     const bilibiliOpen = await checkBilibiliOpen();
@@ -170,6 +170,9 @@ function startActivityMonitor(): void {
 // 思考锁定状态（THINKING期间屏蔽所有交互）
 let isThinkingLocked = false;
 
+// AI 回答锁定：回答后 2 分钟内禁止一切状态/气泡变更（最高优先级）
+let responseLocked = false;
+let responseLockTimer: number | null = null;
 // 气泡永久驻留标志（输出结果后气泡不自动消失）
 let bubblePermanent = false;
 
@@ -347,6 +350,9 @@ function stripMarkdown(text: string): string {
  * 更新气泡内容
  */
 function updateBubble(text: string): void {
+  // 回答锁期间不更新气泡（最高优先级）
+  if (responseLocked) return;
+
   // 先清理可能存在的重复气泡
   cleanupDuplicateBubbles();
 
@@ -364,6 +370,12 @@ function updateBubble(text: string): void {
  * 检查是否允许切换状态
  */
 function canChangeState(newState: string): boolean {
+  // 回答锁定期间：禁止一切状态变更（最高优先级，THINKING 除外——思考阶段仍可工作）
+  if (responseLocked && newState !== 'THINKING') {
+    console.log('🚫 回答锁定中，禁止状态切换');
+    return false;
+  }
+
   // THINKING 锁定期间，只允许切换到其他非交互状态
   if (isThinkingLocked && newState !== 'IDLE' && newState !== 'THINKING' && newState !== 'SLEEP') {
     console.log('🚫 THINKING 锁定中，禁止交互状态切换');
@@ -395,6 +407,11 @@ function canChangeState(newState: string): boolean {
 /**
  * 处理 THINKING 锁定期间的点击
  */
+function handleLockedInteraction(): void {
+  // 锁定期不覆盖气泡，静默忽略交互
+  console.log('🔒 回答锁定中，忽略交互');
+}
+
 function handleThinkingLockedClick(): void {
   if (!chatText) return;
   const q = getAmbientQuote('THINKING');
@@ -611,6 +628,12 @@ function setupInteractions(): void {
       // 如果点击的是拖动按钮，不处理
       if ((e.target as HTMLElement).id === 'drag-handle') return;
 
+      // 回答锁定期间 — 最高优先级，点击只给反馈不改变状态
+      if (responseLocked) {
+        handleLockedInteraction();
+        return;
+      }
+
       // THINKING 锁定期间
       if (isThinkingLocked) {
         handleThinkingLockedClick();
@@ -651,7 +674,7 @@ function setupInteractions(): void {
   // ===== 悬停静止 3.5 秒 → SHY 害羞 =====
   if (petSection) {
     petSection.addEventListener('mouseenter', (e) => {
-      if (isThinkingLocked || isInputting) return;
+      if (responseLocked || isThinkingLocked || isInputting) return;
 
       isHovering = true;
       hoverStartPos = { x: e.clientX, y: e.clientY };
@@ -813,10 +836,9 @@ function setupInteractions(): void {
         if (!content || content.length < 2) {
           updatePetState('IDLE', '诶？香澄没有收到回复呢...可能是 API 连接不稳定，再试一次？');
         } else {
-          // 用 customQuote 传 AI 回复，避免 updatePetState 内部覆盖
+          // 用 customQuote 传 AI 回复，然后启动 2 分钟锁
           updatePetState('HAPPY', content);
-          // bubblePermanent 必须在 updatePetState 之后设置（内部会重置）
-          bubblePermanent = true;
+          startResponseLock();
         }
         pendingClipboardContent = '';
       } catch (e) {
@@ -1019,11 +1041,39 @@ function isErrorMessage(text: string): boolean {
 /**
  * 清理状态，恢复 IDLE
  */
+/**
+ * 启动 AI 回答锁定（2 分钟，最高优先级）
+ * 锁结束后恢复番茄钟气泡或切回 IDLE
+ */
+function startResponseLock(): void {
+  responseLocked = true;
+  bubblePermanent = true;
+
+  if (responseLockTimer) clearTimeout(responseLockTimer);
+  responseLockTimer = window.setTimeout(() => {
+    responseLocked = false;
+    bubblePermanent = false;
+    responseLockTimer = null;
+
+    if (pomodoroActive) {
+      // 番茄钟还在跑 → 恢复倒计时气泡
+      updatePomodoroCountdown();
+    } else {
+      updatePetState('IDLE');
+    }
+  }, 2 * 60 * 1000); // 2 分钟
+}
+
 function resetToIdle(): void {
   if (cleanupTimer) {
     clearTimeout(cleanupTimer);
     cleanupTimer = null;
   }
+  if (responseLockTimer) {
+    clearTimeout(responseLockTimer);
+    responseLockTimer = null;
+  }
+  responseLocked = false;
   bubblePermanent = false;  // 清除气泡驻留标志
   isThinkingLocked = false;  // 清除思考锁定
   updatePetState('IDLE');
@@ -1086,20 +1136,11 @@ async function sendMessage(): Promise<void> {
     updatePetState('CELEBRATE');
     updateBubble(fixedQuote);
 
-    // 第三阶段：4秒后显示 AI 内容，1分钟后自动切回待机
+    // 第三阶段：4秒后显示 AI 内容，启动 2 分钟回答锁
     const finalContent = aiContent;
     setTimeout(() => {
-      updateBubble(finalContent);
-      bubblePermanent = true;
-
-      // 1分钟后自动清除并切回 IDLE
-      if (cleanupTimer) clearTimeout(cleanupTimer);
-      cleanupTimer = window.setTimeout(() => {
-        console.log('=== AI 回复 1 分钟超时，自动切回待机 ===');
-        bubblePermanent = false;
-        resetToIdle();
-        cleanupTimer = null;
-      }, 60000);
+      updatePetState('HAPPY', finalContent);
+      startResponseLock();
     }, 4000);
 
   } catch (error) {
@@ -1134,8 +1175,8 @@ function startClipboardChecker(): void {
 
   // 每 3 秒检查一次剪贴板
   window.setInterval(async () => {
-    // 输入模式或 THINKING 锁定期间不检查
-    if (isInputting || isThinkingLocked) return;
+    // 回答锁 / 输入模式 / THINKING 锁定期间不检查
+    if (responseLocked || isInputting || isThinkingLocked) return;
 
     try {
       const currentContent = await readText();
@@ -1227,7 +1268,7 @@ let lastPomodoroReminder = Date.now();
 
 function startPomodoroReminder(): void {
   setInterval(() => {
-    if (pomodoroActive || pomodoroBtn?.classList.contains('hidden') === false) return;
+    if (responseLocked || pomodoroActive || pomodoroBtn?.classList.contains('hidden') === false) return;
 
     // 连续活跃 < 5分钟 + 距上次提醒 > 60分钟 → 提示
     const activeMinutes = (Date.now() - lastInteractionTime) / 60000;
@@ -1256,6 +1297,7 @@ function startPomodoroReminder(): void {
 
 function updatePomodoroCountdown(): void {
   if (!pomodoroActive) return;
+  if (responseLocked) return; // 回答锁期间不更新气泡
   const remaining = Math.max(0, pomodoroEndTime - Date.now());
   const minutes = Math.floor(remaining / 60000);
   const seconds = Math.floor((remaining % 60000) / 1000);
@@ -1270,7 +1312,7 @@ function startPomodoro(): void {
   pomodoroPhase = 'focus';
   pomodoroEndTime = Date.now() + POMODORO_FOCUS;
 
-  updatePetState('THINKING', '一起加油！25分钟专注开始！🍅');
+  updateBubble('一起加油！25分钟专注开始！🍅');
 
   // 显示停止按钮
   if (pomodoroBtn) {
@@ -1298,8 +1340,9 @@ function stopPomodoro(): void {
     pomodoroBtn.textContent = '番茄钟？';
     pomodoroBtn.classList.add('hidden');
   }
-  resetToIdle();
-  updateBubble('番茄钟已停止，随时可以聊天框说"番茄钟"再开始哦~');
+  if (!responseLocked) {
+    updateBubble('番茄钟已停止，随时可以聊天框说"番茄钟"再开始哦~');
+  }
   console.log('🍅 番茄钟已停止');
 }
 
@@ -1313,7 +1356,7 @@ function endCurrentPhase(): void {
     // 专注结束 → 休息
     pomodoroPhase = 'break';
     pomodoroEndTime = Date.now() + POMODORO_BREAK;
-    updatePetState('CELEBRATE', '太棒了！休息5分钟，起来走走喝杯水~ ☕');
+    updateBubble('太棒了！休息5分钟，起来走走喝杯水~ ☕');
 
     pomodoroTimer = window.setInterval(() => {
       updatePomodoroCountdown();
@@ -1328,15 +1371,9 @@ function endCurrentPhase(): void {
       pomodoroBtn.textContent = '番茄钟？';
       pomodoroBtn.classList.add('hidden');
     }
-    updatePetState('HAPPY', '一轮番茄钟完成！刚才学了什么？跟香澄聊聊吧~ ✨');
-    bubblePermanent = true;
-
-    if (cleanupTimer) clearTimeout(cleanupTimer);
-    cleanupTimer = window.setTimeout(() => {
-      bubblePermanent = false;
-      resetToIdle();
-      cleanupTimer = null;
-    }, 60000);
+    updateBubble('一轮番茄钟完成！刚才学了什么？跟香澄聊聊吧~ ✨');
+    // 启动回答锁（即使不是 AI 回答，也复用 2 分钟保护机制）
+    startResponseLock();
   }
 }
 
