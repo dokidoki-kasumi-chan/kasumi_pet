@@ -22,7 +22,7 @@ export const API_PROVIDER_PRESETS = {
   deepseek: {
     name: 'DeepSeek',
     apiUrl: 'https://api.deepseek.com/chat/completions',
-    modelName: 'deepseek-chat'
+    modelName: 'deepseek-v4-flash'
   },
   anthropic: {
     name: 'Anthropic (Claude)',
@@ -239,6 +239,9 @@ export class ApiClient {
     console.log('[API] Model:', this.modelName);
     console.log('[API] Messages count:', messages.length);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+
     try {
       const response = await fetch(this.apiUrl, {
         method: 'POST',
@@ -249,8 +252,11 @@ export class ApiClient {
         body: JSON.stringify({
           model: this.modelName,
           messages: messages
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -259,7 +265,14 @@ export class ApiClient {
       }
 
       const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || '';
+      console.log('[API] Raw response structure:', JSON.stringify(data).substring(0, 300));
+
+      // 兼容多种响应格式
+      const content = data.choices?.[0]?.message?.content
+        || data.choices?.[0]?.delta?.content
+        || data.content
+        || data.message
+        || '';
 
       console.log('[API] Response received, length:', content.length);
       return {
@@ -268,7 +281,12 @@ export class ApiClient {
         text: content,
         reply: content
       };
-    } catch (error) {
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.error('[API] 请求超时 (30s)');
+        throw new Error('API 请求超时，请检查网络或切换 API 供应商');
+      }
       console.error('[API] Request failed:', error);
       throw error;
     }
