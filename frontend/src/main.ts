@@ -1103,16 +1103,38 @@ async function sendMessage(): Promise<void> {
   responseLocked = false;
   bubblePermanent = false;
 
+  // 消息过长直接拒绝，不发给 API
+  if (message.length > 2000) {
+    updatePetState('SURPRISED', '消息太长了啦！香澄的脑袋装不下这么多字...简短一点好不好？');
+    return;
+  }
+
   // 第一阶段：THINKING 状态 + 固定台词，并启动锁定
   isThinkingLocked = true;  // 启动思考锁定
   const thinkingQuote = '唔……香澄正在拼命思考中！';
   updatePetState('THINKING');
   updateBubble(thinkingQuote);
 
+  // 60s 安全看门狗：超时后强制恢复，避免永久卡 THINKING
+  let safetyTimedOut = false;
+  const safetyTimer = window.setTimeout(() => {
+    if (!isThinkingLocked) return;
+    safetyTimedOut = true;
+    isThinkingLocked = false;
+    updateBubble('唔...想了太久也没想出来，可能网络出问题了...等一下再试试吧？');
+    setTimeout(() => {
+      if (currentState !== 'IDLE') {
+        updatePetState('IDLE');
+      }
+    }, 5000);
+  }, 60000);
+
   try {
     // 发送消息到 LLM API
     console.log('🎸 发送消息:', message);
     const aiContent = await petController.chat(message);
+    clearTimeout(safetyTimer);
+    if (safetyTimedOut) return;
     console.log('🎸 AI 响应:', aiContent);
 
     // 解除思考锁定
@@ -1146,6 +1168,7 @@ async function sendMessage(): Promise<void> {
     }, 4000);
 
   } catch (error) {
+    clearTimeout(safetyTimer);
     console.error('❌ Chat error:', error);
     isThinkingLocked = false;  // 解除思考锁定
     updatePetState('IDLE', '唔...香澄有点听不懂你的话，能再说一遍吗？');
