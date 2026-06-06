@@ -175,6 +175,14 @@ let responseLocked = false;
 let responseLockTimer: number | null = null;
 // 气泡永久驻留标志（输出结果后气泡不自动消失）
 let bubblePermanent = false;
+// zzz 动画定时器
+let zzzTimer: number | null = null;
+
+function isSleepTime(): boolean {
+  const hour = new Date().getHours();
+  const schedule = getSchedule();
+  return hour >= schedule.sleepStartHour || hour < schedule.sleepEndHour;
+}
 
 // 剪贴板监听相关
 let lastClipboardContent = '';
@@ -522,6 +530,10 @@ function updatePetState(state: string, customQuote?: string): void {
  * 切换到输入状态
  */
 function switchToInputMode(): void {
+  if (isSleepTime()) {
+    updateBubble('zzz... 香澄已经睡着了... 💤');
+    return;
+  }
   isInputting = true;
   if (chatBtn) chatBtn.classList.add('hidden');
   if (clipboardHelpBtn) clipboardHelpBtn.classList.add('hidden');
@@ -954,20 +966,25 @@ function startMealReminderChecker(): void {
  */
 function startLateNightChecker(): void {
   setInterval(() => {
-    const hour = new Date().getHours();
-
-    // 深夜时段进入睡眠状态
-    const schedule = getSchedule();
-    if (hour >= schedule.sleepStartHour || hour < schedule.sleepEndHour) {
+    if (isSleepTime()) {
       if (currentState !== 'SLEEP') {
-        console.log('=== Auto: SLEEP (深夜模式) ===');
-        updatePetState('SLEEP'); // 自动显示 KASUMI_QUOTES['SLEEP']
+        console.log('=== Auto: SLEEP (深夜模式 00:00-08:00) ===');
+        updatePetState('SLEEP');
+        startZzzAnimation();
+        // 隐藏所有按钮
+        if (chatBtn) chatBtn.classList.add('hidden');
+        if (clipboardHelpBtn) clipboardHelpBtn.classList.add('hidden');
+        if (pomodoroBtn) pomodoroBtn.classList.add('hidden');
+        if (inputArea) inputArea.classList.add('hidden');
+        isInputting = false;
+        if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
       }
     } else {
-      // 早上6点后恢复待机
       if (currentState === 'SLEEP') {
+        stopZzzAnimation();
         updatePetState('IDLE');
         showGreetingMessage();
+        if (chatBtn) chatBtn.classList.remove('hidden');
       }
     }
   }, 60 * 1000); // 每分钟检查
@@ -982,7 +999,7 @@ function startIdleTimeChecker(): void {
     const hour = new Date().getHours();
 
     // 30分钟无操作 → SLEEP（非深夜时段）
-    if (idleTime >= 30 && currentState === 'IDLE' && hour >= 6 && hour < 23) {
+    if (idleTime >= 30 && currentState === 'IDLE' && hour >= 8) {
       console.log('=== Auto: SLEEP (无操作30分钟) ===');
       updatePetState('SLEEP');
       return;
@@ -1039,6 +1056,25 @@ function isErrorMessage(text: string): boolean {
  * 清理状态，恢复 IDLE
  */
 /**
+ * zzz 睡眠动画气泡
+ */
+function startZzzAnimation(): void {
+  let frame = 0;
+  zzzTimer = window.setInterval(() => {
+    const frames = ['z 💤', 'zz 💤', 'zzz 💤'];
+    if (chatText) chatText.textContent = frames[frame % 3];
+    frame++;
+  }, 1000);
+}
+
+function stopZzzAnimation(): void {
+  if (zzzTimer) {
+    clearInterval(zzzTimer);
+    zzzTimer = null;
+  }
+}
+
+/**
  * 启动 AI 回答锁定（1 分钟，最高优先级）
  * 锁期间保持 HAPPY/CELEBRATE 立绘，结束后切回 IDLE 或恢复番茄钟
  */
@@ -1084,6 +1120,13 @@ async function sendMessage(): Promise<void> {
 
   const message = chatInput.value.trim();
   if (!message) return;
+
+  // 睡眠时间不聊天
+  if (isSleepTime()) {
+    updateBubble('zzz... 香澄已经睡着了... 💤');
+    chatInput.value = '';
+    return;
+  }
 
   // 清空输入框
   chatInput.value = '';

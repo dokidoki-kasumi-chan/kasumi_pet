@@ -134,8 +134,8 @@
   "schedule": {
     "lunchTime": "12:00",
     "dinnerTime": "18:30",
-    "sleepStartHour": 23,
-    "sleepEndHour": 6,
+    "sleepStartHour": 0,
+    "sleepEndHour": 8,
     "restReminderIntervalMin": 120,
     "idleTimeoutMin": 30,
     "yawnTimeoutMin": 10
