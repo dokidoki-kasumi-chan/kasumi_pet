@@ -179,7 +179,12 @@ let bubblePermanent = false;
 function isSleepTime(): boolean {
   const hour = new Date().getHours();
   const schedule = getSchedule();
-  return hour >= schedule.sleepStartHour || hour < schedule.sleepEndHour;
+  // 跨天窗口 (如 23-6): hour >= start || hour < end
+  // 同天窗口 (如 0-8):  hour >= start && hour < end
+  if (schedule.sleepStartHour > schedule.sleepEndHour) {
+    return hour >= schedule.sleepStartHour || hour < schedule.sleepEndHour;
+  }
+  return hour >= schedule.sleepStartHour && hour < schedule.sleepEndHour;
 }
 
 // 剪贴板监听相关
