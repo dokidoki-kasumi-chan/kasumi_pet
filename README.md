@@ -11,7 +11,7 @@
    ```bash
    xattr -cr /Applications/mibo.app
    ```
-   原因：未签名应用经 QQ/网盘传输会被 macOS 标记为隔离（`com.apple.quarantine`）。`xattr -cr` 清除此标记即可。
+   原因：未签名应用经会被 macOS 标记为隔离（`com.apple.quarantine`）。`xattr -cr` 清除此标记即可。
 
 ## 基本交互
 
