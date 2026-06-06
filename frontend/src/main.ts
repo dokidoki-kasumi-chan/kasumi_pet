@@ -114,7 +114,7 @@ function handleSlackingEnd(): void {
 
 function startActivityMonitor(): void {
   window.setInterval(async () => {
-    if (responseLocked || isThinkingLocked || isInputting || currentState === 'SLEEP') return;
+    if (isSleepTime() || responseLocked || isThinkingLocked || isInputting || currentState === 'SLEEP') return;
 
     // 1. B站摸鱼检测
     const bilibiliOpen = await checkBilibiliOpen();
@@ -175,8 +175,6 @@ let responseLocked = false;
 let responseLockTimer: number | null = null;
 // 气泡永久驻留标志（输出结果后气泡不自动消失）
 let bubblePermanent = false;
-// zzz 动画定时器
-let zzzTimer: number | null = null;
 
 function isSleepTime(): boolean {
   const hour = new Date().getHours();
@@ -637,6 +635,9 @@ function setupInteractions(): void {
       // 如果点击的是拖动按钮，不处理
       if ((e.target as HTMLElement).id === 'drag-handle') return;
 
+      // 睡眠期间 — 彻底锁死互动
+      if (isSleepTime()) return;
+
       // 回答锁定期间 — 最高优先级，点击只给反馈不改变状态
       if (responseLocked) {
         handleLockedInteraction();
@@ -683,7 +684,7 @@ function setupInteractions(): void {
   // ===== 悬停静止 3.5 秒 → SHY 害羞 =====
   if (petSection) {
     petSection.addEventListener('mouseenter', (e) => {
-      if (responseLocked || isThinkingLocked || isInputting) return;
+      if (isSleepTime() || responseLocked || isThinkingLocked || isInputting) return;
 
       isHovering = true;
       hoverStartPos = { x: e.clientX, y: e.clientY };
@@ -962,7 +963,7 @@ function startMealReminderChecker(): void {
 }
 
 /**
- * 深夜检查器 - 23:00 后
+ * 深夜检查器 - 00:00-08:00 睡眠模式
  */
 function startLateNightChecker(): void {
   setInterval(() => {
@@ -970,7 +971,7 @@ function startLateNightChecker(): void {
       if (currentState !== 'SLEEP') {
         console.log('=== Auto: SLEEP (深夜模式 00:00-08:00) ===');
         updatePetState('SLEEP');
-        startZzzAnimation();
+        updateBubble('💤');
         // 隐藏所有按钮
         if (chatBtn) chatBtn.classList.add('hidden');
         if (clipboardHelpBtn) clipboardHelpBtn.classList.add('hidden');
@@ -981,7 +982,6 @@ function startLateNightChecker(): void {
       }
     } else {
       if (currentState === 'SLEEP') {
-        stopZzzAnimation();
         updatePetState('IDLE');
         showGreetingMessage();
         if (chatBtn) chatBtn.classList.remove('hidden');
@@ -998,8 +998,8 @@ function startIdleTimeChecker(): void {
     const idleTime = (Date.now() - lastInteractionTime) / (1000 * 60); // 分钟
     const hour = new Date().getHours();
 
-    // 30分钟无操作 → SLEEP（非深夜时段）
-    if (idleTime >= 30 && currentState === 'IDLE' && hour >= 8) {
+    // 30分钟无操作 → SLEEP（非深夜时段，8:00-22:59）
+    if (idleTime >= 30 && currentState === 'IDLE' && hour >= 8 && hour < 23) {
       console.log('=== Auto: SLEEP (无操作30分钟) ===');
       updatePetState('SLEEP');
       return;
@@ -1055,25 +1055,6 @@ function isErrorMessage(text: string): boolean {
 /**
  * 清理状态，恢复 IDLE
  */
-/**
- * zzz 睡眠动画气泡
- */
-function startZzzAnimation(): void {
-  let frame = 0;
-  zzzTimer = window.setInterval(() => {
-    const frames = ['z 💤', 'zz 💤', 'zzz 💤'];
-    if (chatText) chatText.textContent = frames[frame % 3];
-    frame++;
-  }, 1000);
-}
-
-function stopZzzAnimation(): void {
-  if (zzzTimer) {
-    clearInterval(zzzTimer);
-    zzzTimer = null;
-  }
-}
-
 /**
  * 启动 AI 回答锁定（1 分钟，最高优先级）
  * 锁期间保持 HAPPY/CELEBRATE 立绘，结束后切回 IDLE 或恢复番茄钟
@@ -1243,8 +1224,8 @@ function startClipboardChecker(): void {
 
   // 每 3 秒检查一次剪贴板
   window.setInterval(async () => {
-    // 回答锁 / 输入模式 / THINKING 锁定期间不检查
-    if (responseLocked || isInputting || isThinkingLocked) return;
+    // 回答锁 / 输入模式 / THINKING 锁定 / 睡眠期间不检查
+    if (responseLocked || isInputting || isThinkingLocked || isSleepTime()) return;
 
     try {
       const currentContent = await readText();
