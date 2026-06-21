@@ -1004,14 +1004,14 @@ function startIdleTimeChecker(): void {
     const hour = new Date().getHours();
 
     // 30分钟无操作 → SLEEP（非深夜时段，8:00-22:59）
-    if (idleTime >= 30 && currentState === 'IDLE' && hour >= 8 && hour < 23) {
+    if (idleTime >= 30 && currentState === 'IDLE' && hour >= 8 && hour < 23 && !isSleepTime()) {
       console.log('=== Auto: SLEEP (无操作30分钟) ===');
       updatePetState('SLEEP');
       return;
     }
 
-    // 10分钟无操作 → YAWN
-    if (idleTime >= 10 && currentState === 'IDLE') {
+    // 10分钟无操作 → YAWN（非睡眠时段）
+    if (idleTime >= 10 && currentState === 'IDLE' && !isSleepTime()) {
       console.log('=== Auto: YAWN (无操作10分钟) ===');
       updatePetState('YAWN', '还在吗？不要累坏啦~');
     }
