@@ -286,10 +286,19 @@ async function initPet(): Promise<void> {
   startScheduleCheckers();
 
   console.log('✨ 桌宠已启动！');
-  // 初始化为 IDLE 状态（设置默认图片）
-  updatePetState('IDLE');
-  // 显示问候语
-  showGreetingMessage();
+  // 初始状态：睡眠时段直接 SLEEP，否则 IDLE
+  if (isSleepTime()) {
+    updatePetState('SLEEP');
+    updateBubble('💤');
+    if (chatBtn) chatBtn.classList.add('hidden');
+    if (clipboardHelpBtn) clipboardHelpBtn.classList.add('hidden');
+    if (pomodoroBtn) pomodoroBtn.classList.add('hidden');
+    if (inputArea) inputArea.classList.add('hidden');
+    isInputting = false;
+  } else {
+    updatePetState('IDLE');
+    showGreetingMessage();
+  }
 }
 
 /**
