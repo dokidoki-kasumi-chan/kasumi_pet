@@ -738,6 +738,9 @@ function setupInteractions(): void {
 
   // ===== 双击空白区域关闭气泡并恢复 IDLE =====
   document.addEventListener('dblclick', (e) => {
+    // 睡眠期间锁死
+    if (isSleepTime()) return;
+
     const target = e.target as HTMLElement;
 
     // 如果点击的是交互元素，不处理
@@ -757,6 +760,8 @@ function setupInteractions(): void {
 
   // 点击空白区域（非永久驻留时）恢复 IDLE
   document.addEventListener('click', (e) => {
+    // 睡眠期间锁死
+    if (isSleepTime()) return;
     // 永久驻留时不处理
     if (bubblePermanent) return;
     // 输入模式下不处理
