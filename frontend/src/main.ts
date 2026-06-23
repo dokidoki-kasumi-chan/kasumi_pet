@@ -378,8 +378,8 @@ function updateBubble(text: string): void {
  * 检查是否允许切换状态
  */
 function canChangeState(newState: string): boolean {
-  // 回答锁定期间：禁止交互触发状态变更（AI 回复流程 THINKING/CELEBRATE/HAPPY 除外）
-  if (responseLocked && newState !== 'THINKING' && newState !== 'CELEBRATE' && newState !== 'HAPPY') {
+  // 回答锁定期间：禁止交互触发状态变更（AI/SLEEP 系统状态除外）
+  if (responseLocked && newState !== 'THINKING' && newState !== 'CELEBRATE' && newState !== 'HAPPY' && newState !== 'SLEEP') {
     console.log('🚫 回答锁定中，禁止状态切换');
     return false;
   }
