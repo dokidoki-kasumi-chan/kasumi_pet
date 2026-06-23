@@ -24,28 +24,27 @@
           <option value="anthropic">Anthropic (Claude)</option>
           <option value="custom">自定义</option>
         </select>
-        <small class="help-text">选择 AI 服务提供商</small>
       </div>
 
-      <!-- API Key 设置 -->
+      <!-- API Key -->
       <div class="setting-group">
         <label for="api-key">API Key</label>
-        <input type="password" id="api-key" placeholder="输入大模型 API Key" class="settings-input">
-        <small class="help-text">用于调用大模型 API</small>
+        <input type="password" id="api-key" placeholder="输入 API Key" class="settings-input">
+      </div>
+
+      <!-- 模型选择（下拉 + 手动） -->
+      <div class="setting-group">
+        <label for="model-select">模型</label>
+        <select id="model-select" class="settings-select">
+          <!-- JS 动态填充 -->
+        </select>
+        <input type="text" id="model-name" placeholder="或手动输入模型名称" class="settings-input" style="margin-top:6px">
       </div>
 
       <!-- API 地址 -->
-      <div class="setting-group" id="api-url-group">
+      <div class="setting-group">
         <label for="api-url">API 地址</label>
-        <input type="text" id="api-url" placeholder="自动填充" class="settings-input">
-        <small class="help-text">大模型 API 端点，自定义供应商可修改</small>
-      </div>
-
-      <!-- 模型名称 -->
-      <div class="setting-group" id="model-name-group">
-        <label for="model-name">模型名称</label>
-        <input type="text" id="model-name" placeholder="自动填充" class="settings-input">
-        <small class="help-text">使用的大模型，自定义供应商可修改</small>
+        <input type="text" id="api-url" placeholder="https://api.xxx.com/chat/completions" class="settings-input">
       </div>
 
       <!-- 角色选择 -->
