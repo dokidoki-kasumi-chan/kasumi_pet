@@ -266,11 +266,16 @@ async function initPet(): Promise<void> {
     await initCharacterLoader(newCharId);
     await loadAffection(newCharId);
     await petController?.reloadConfig();
-    // 重置到 IDLE
+    // 重置状态（睡眠时段保持 SLEEP）
     isThinkingLocked = false;
     bubblePermanent = false;
-    updatePetState('IDLE');
-    showGreetingMessage();
+    if (isSleepTime()) {
+      updatePetState('SLEEP');
+      updateBubble('💤');
+    } else {
+      updatePetState('IDLE');
+      showGreetingMessage();
+    }
   });
 
   // 获取 DOM 元素
