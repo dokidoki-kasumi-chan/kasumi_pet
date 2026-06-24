@@ -12,5 +12,6 @@ frontend/src-tauri/characters/*/images/
 # 杂项
  状态图/
 基础图/
+vector_db_demo.ts
 
 
