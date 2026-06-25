@@ -1114,7 +1114,11 @@ function resetToIdle(): void {
   responseLocked = false;
   bubblePermanent = false;  // 清除气泡驻留标志
   isThinkingLocked = false;  // 清除思考锁定
+  isInputting = false;
   updatePetState('IDLE');
+  // 确保聊天按钮可见
+  if (chatBtn) chatBtn.classList.remove('hidden');
+  if (inputArea) inputArea.classList.add('hidden');
 }
 
 /**
