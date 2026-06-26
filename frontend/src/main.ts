@@ -1020,7 +1020,6 @@ function startLateNightChecker(): void {
 function startIdleTimeChecker(): void {
   setInterval(() => {
     const idleTime = (Date.now() - lastInteractionTime) / (1000 * 60); // 分钟
-    const hour = new Date().getHours();
 
     // 空闲超过 2 小时 → 大概率是熄屏唤醒，重置计时
     if (idleTime >= 120) {
