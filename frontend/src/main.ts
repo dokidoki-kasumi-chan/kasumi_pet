@@ -1022,6 +1022,12 @@ function startIdleTimeChecker(): void {
     const idleTime = (Date.now() - lastInteractionTime) / (1000 * 60); // 分钟
     const hour = new Date().getHours();
 
+    // 空闲超过 2 小时 → 大概率是熄屏唤醒，重置计时，不触发 SLEEP
+    if (idleTime >= 120) {
+      lastInteractionTime = Date.now();
+      return;
+    }
+
     // 30分钟无操作 → SLEEP（非深夜时段，8:00-22:59）
     if (idleTime >= 30 && currentState === 'IDLE' && hour >= 8 && hour < 23 && !isSleepTime()) {
       console.log('=== Auto: SLEEP (无操作30分钟) ===');
