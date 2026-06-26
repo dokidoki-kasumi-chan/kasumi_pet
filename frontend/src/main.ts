@@ -1096,6 +1096,10 @@ function startResponseLock(): void {
     if (pomodoroActive) {
       // 番茄钟还在跑 → 恢复倒计时气泡
       updatePomodoroCountdown();
+    } else if (isSleepTime()) {
+      // 锁到期但仍在睡眠时段 → 回 SLEEP
+      updatePetState('SLEEP');
+      updateBubble('💤');
     } else {
       updatePetState('IDLE');
     }
