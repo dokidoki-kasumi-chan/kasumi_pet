@@ -1005,10 +1005,11 @@ function startLateNightChecker(): void {
         if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
       }
     } else {
+      // 醒来时强制恢复按钮（无论状态是否 SLEEP，按钮在午夜被隐藏了）
+      if (chatBtn) chatBtn.classList.remove('hidden');
       if (currentState === 'SLEEP') {
         updatePetState('IDLE');
         showGreetingMessage();
-        if (chatBtn) chatBtn.classList.remove('hidden');
       }
     }
   }, 60 * 1000); // 每分钟检查
