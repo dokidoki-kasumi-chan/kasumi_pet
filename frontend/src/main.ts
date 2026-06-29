@@ -994,14 +994,15 @@ function startLateNightChecker(): void {
     if (isSleepTime()) {
       if (currentState !== 'SLEEP') {
         console.log('=== Auto: SLEEP (深夜模式 00:00-08:00) ===');
-        updatePetState('SLEEP');
-        updateBubble('💤');
+        // 先退出输入模式，避免 canChangeState 拦截 SLEEP
+        isInputting = false;
+        if (inputArea) inputArea.classList.add('hidden');
         // 隐藏所有按钮
         if (chatBtn) chatBtn.classList.add('hidden');
         if (clipboardHelpBtn) clipboardHelpBtn.classList.add('hidden');
         if (pomodoroBtn) pomodoroBtn.classList.add('hidden');
-        if (inputArea) inputArea.classList.add('hidden');
-        isInputting = false;
+        updatePetState('SLEEP');
+        updateBubble('💤');
         if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
       }
     } else {
