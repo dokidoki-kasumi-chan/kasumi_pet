@@ -404,8 +404,8 @@ function canChangeState(newState: string): boolean {
     return false;
   }
 
-  // 输入模式下不允许切换（除了IDLE恢复）
-  if (isInputting && newState !== 'IDLE') {
+  // 输入模式下不允许切换（IDLE/SLEEP 系统状态除外）
+  if (isInputting && newState !== 'IDLE' && newState !== 'SLEEP') {
     console.log('🚫 输入模式下禁止切换状态');
     return false;
   }
@@ -994,13 +994,16 @@ function startLateNightChecker(): void {
     if (isSleepTime()) {
       if (currentState !== 'SLEEP') {
         console.log('=== Auto: SLEEP (深夜模式 00:00-08:00) ===');
+        // 停止可能正在跑的番茄钟（避免倒计时覆盖 zzz 气泡）
+        if (pomodoroTimer) { clearInterval(pomodoroTimer); pomodoroTimer = null; }
+        pomodoroActive = false;
         // 先退出输入模式，避免 canChangeState 拦截 SLEEP
         isInputting = false;
         if (inputArea) inputArea.classList.add('hidden');
         // 隐藏所有按钮
         if (chatBtn) chatBtn.classList.add('hidden');
         if (clipboardHelpBtn) clipboardHelpBtn.classList.add('hidden');
-        if (pomodoroBtn) pomodoroBtn.classList.add('hidden');
+        if (pomodoroBtn) { pomodoroBtn.textContent = '番茄钟？'; pomodoroBtn.classList.add('hidden'); }
         updatePetState('SLEEP');
         updateBubble('💤');
         if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
@@ -1349,7 +1352,7 @@ let lastPomodoroReminder = Date.now();
 
 function startPomodoroReminder(): void {
   setInterval(() => {
-    if (responseLocked || pomodoroActive || pomodoroBtn?.classList.contains('hidden') === false) return;
+    if (isSleepTime() || responseLocked || pomodoroActive || pomodoroBtn?.classList.contains('hidden') === false) return;
 
     // 连续活跃 < 5分钟 + 距上次提醒 > 60分钟 → 提示
     const activeMinutes = (Date.now() - lastInteractionTime) / 60000;
