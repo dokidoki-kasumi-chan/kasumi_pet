@@ -1,6 +1,6 @@
 # mibo — 技术文档
 
-面向面试官/技术评审。产品功能见 [README.md](./README.md)。
+产品功能见 [README.md](./README.md)。
 
 ## 技术栈
 
