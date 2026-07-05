@@ -66,13 +66,6 @@ async function checkRunningApp(keywords: string[]): Promise<string | null> {
   } catch { return null; }
 }
 
-async function checkMatchWindow(keywords: string[]): Promise<{keyword: string; title: string; owner: string} | null> {
-  try {
-    const raw = await invoke<string>('match_window', { keywords });
-    if (raw === 'null') return null;
-    return JSON.parse(raw);
-  } catch { return null; }
-}
 
 async function checkBilibiliOpen(): Promise<boolean> {
   try {
@@ -392,8 +385,14 @@ function updateBubble(text: string): void {
  * 检查是否允许切换状态
  */
 function canChangeState(newState: string): boolean {
-  // 回答锁定期间：禁止交互触发状态变更（AI/SLEEP 系统状态除外）
-  if (responseLocked && newState !== 'THINKING' && newState !== 'CELEBRATE' && newState !== 'HAPPY' && newState !== 'SLEEP') {
+  // [C1] SLEEP 状态下只允许切到 IDLE（唤醒）或保持 SLEEP
+  if (currentState === 'SLEEP' && newState !== 'SLEEP' && newState !== 'IDLE') {
+    console.log('🚫 睡眠中，禁止状态切换');
+    return false;
+  }
+
+  // [C2] 回答锁定期间：禁止交互触发状态变更（AI/SLEEP 系统状态除外）
+  if (responseLocked && newState !== 'THINKING' && newState !== 'CELEBRATE' && newState !== 'HAPPY' && newState !== 'SLEEP' && newState !== 'IDLE') {
     console.log('🚫 回答锁定中，禁止状态切换');
     return false;
   }
@@ -410,8 +409,8 @@ function canChangeState(newState: string): boolean {
     return false;
   }
 
-  // IDLE, THINKING, SLEEP 不受冷却限制
-  if (newState === 'IDLE' || newState === 'THINKING' || newState === 'SLEEP') {
+  // IDLE, THINKING, SLEEP, CELEBRATE, HAPPY 不受冷却限制
+  if (newState === 'IDLE' || newState === 'THINKING' || newState === 'SLEEP' || newState === 'CELEBRATE' || newState === 'HAPPY') {
     return true;
   }
 
@@ -579,6 +578,9 @@ function switchToChatButtonMode(): void {
 
   // 恢复待机自语
   startIdleChatter();
+
+  // 清理剪贴板助手 timer
+  if (clipboardHelpTimer) { clearTimeout(clipboardHelpTimer); clipboardHelpTimer = null; }
 
   console.log('Switched to chat button mode');
 }
@@ -1004,6 +1006,8 @@ function startLateNightChecker(): void {
         if (chatBtn) chatBtn.classList.add('hidden');
         if (clipboardHelpBtn) clipboardHelpBtn.classList.add('hidden');
         if (pomodoroBtn) { pomodoroBtn.textContent = '番茄钟？'; pomodoroBtn.classList.add('hidden'); }
+        // 清理剪贴板助手 timer
+        if (clipboardHelpTimer) { clearTimeout(clipboardHelpTimer); clipboardHelpTimer = null; }
         updatePetState('SLEEP');
         updateBubble('💤');
         if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
@@ -1175,16 +1179,19 @@ async function sendMessage(): Promise<void> {
   updateBubble(thinkingQuote);
 
   // 60s 安全看门狗：超时后强制恢复，避免永久卡 THINKING
+  // M3+M4: 同时清理 responseLocked 和 bubblePermanent，直接 resetToIdle
   let safetyTimedOut = false;
   const safetyTimer = window.setTimeout(() => {
     if (!isThinkingLocked) return;
     safetyTimedOut = true;
+    responseLocked = false;
+    bubblePermanent = false;
+    if (responseLockTimer) { clearTimeout(responseLockTimer); responseLockTimer = null; }
     isThinkingLocked = false;
     updateBubble('唔...想了太久也没想出来，可能网络出问题了...等一下再试试吧？');
+    // 直接 resetToIdle 而不是分两步，避免 canChangeState 被 responseLocked 拦截
     setTimeout(() => {
-      if (currentState !== 'IDLE') {
-        updatePetState('IDLE');
-      }
+      resetToIdle();
     }, 5000);
   }, 60000);
 
@@ -1212,7 +1219,7 @@ async function sendMessage(): Promise<void> {
     }
 
     // 聊天成功 → 好感度+1
-    bumpAffection().catch(() => {});
+    bumpAffection().catch((e) => console.warn('[mibo] bumpAffection failed:', e));
 
     // 第二阶段：CELEBRATE 状态 + 固定台词
     const fixedQuote = 'Kira-kira Doki-doki！大成功啦！我们在星空下果然是最棒的！';
@@ -1220,8 +1227,10 @@ async function sendMessage(): Promise<void> {
     updateBubble(fixedQuote);
 
     // 第三阶段：4秒后显示 AI 内容，启动 2 分钟回答锁
+    // m1: CELEBRATE 期间维持过渡锁，防止用户交互打乱 CELEBRATE→HAPPY
     const finalContent = aiContent;
     setTimeout(() => {
+      isThinkingLocked = false;  // 4s 结束后释放过渡锁
       startResponseLock();
       updatePetState('HAPPY', finalContent);
     }, 4000);
@@ -1292,7 +1301,7 @@ function startClipboardChecker(): void {
         const isCode = specialDensity > 0.25 || codeEndingRatio > 0.4 || (indentRatio > 0.3 && hasComments);
 
         // 英文：英文字符占比高 + 自然语言特征
-        const englishChars = (currentContent.match(/[a-zA-Z]/g) || []).length;
+        const englishChars = Math.min((currentContent.match(/[a-zA-Z]/g) || []).length, 500);
         const totalChars = currentContent.replace(/\s/g, '').length;
         const englishRatio = totalChars > 0 ? englishChars / Math.min(totalChars, 500) : 0;
         // 常见英文功能词（小写）
@@ -1381,7 +1390,7 @@ function startPomodoroReminder(): void {
 
 function updatePomodoroCountdown(): void {
   if (!pomodoroActive) return;
-  if (responseLocked) return; // 回答锁期间不更新气泡
+  // m7: 不再因 responseLocked 跳过更新，气泡驻留由 startResponseLock 保护
   const remaining = Math.max(0, pomodoroEndTime - Date.now());
   const minutes = Math.floor(remaining / 60000);
   const seconds = Math.floor((remaining % 60000) / 1000);
@@ -1409,7 +1418,7 @@ function startPomodoro(): void {
     if (Date.now() >= pomodoroEndTime) {
       endCurrentPhase();
     }
-  }, 1000);
+  }, 200);
 
   console.log('🍅 番茄钟专注开始');
 }
@@ -1424,13 +1433,15 @@ function stopPomodoro(): void {
     pomodoroBtn.textContent = '番茄钟？';
     pomodoroBtn.classList.add('hidden');
   }
-  if (!responseLocked) {
-    updateBubble('番茄钟已停止，随时可以聊天框说"番茄钟"再开始哦~');
-  }
+  // m8: 移除 responseLocked 检查，停止按钮应有即时反馈
+  updateBubble('番茄钟已停止，随时可以聊天框说"番茄钟"再开始哦~');
   console.log('🍅 番茄钟已停止');
 }
 
 function endCurrentPhase(): void {
+  // M7: 重入保护 — 防止系统时间回拨或并发调用导致重复处理
+  if (!pomodoroActive && pomodoroPhase === 'focus') return;
+
   if (pomodoroTimer) {
     clearInterval(pomodoroTimer);
     pomodoroTimer = null;
@@ -1447,7 +1458,7 @@ function endCurrentPhase(): void {
       if (Date.now() >= pomodoroEndTime) {
         endCurrentPhase();
       }
-    }, 1000);
+    }, 200);
   } else {
     // 休息结束 → 完成
     pomodoroActive = false;
@@ -1456,8 +1467,12 @@ function endCurrentPhase(): void {
       pomodoroBtn.classList.add('hidden');
     }
     updateBubble('一轮番茄钟完成！刚才学了什么？跟香澄聊聊吧~ ✨');
-    // 启动回答锁（即使不是 AI 回答，也复用 2 分钟保护机制）
-    startResponseLock();
+    // M8: 如果回答锁已在运行（聊天后），仅驻留气泡，不延长 1 分钟锁
+    if (responseLocked) {
+      bubblePermanent = true;
+    } else {
+      startResponseLock();
+    }
   }
 }
 

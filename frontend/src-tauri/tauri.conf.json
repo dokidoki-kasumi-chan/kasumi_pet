@@ -9,7 +9,7 @@
   },
   "package": {
     "productName": "mibo",
-    "version": "2.8.0"
+    "version": "2.9.0"
   },
   "tauri": {
     "allowlist": {
@@ -29,7 +29,9 @@
       "http": {
         "all": false,
         "request": true,
-        "scope": ["http://localhost:8000/*"]
+        "scope": [
+          "http://localhost:8000/*"
+        ]
       },
       "clipboard": {
         "all": false,
@@ -42,7 +44,7 @@
         "label": "main",
         "fullscreen": false,
         "resizable": false,
-        "title": "mibo - 学习伴侣",
+        "title": "mibo - \u5b66\u4e60\u4f34\u4fa3",
         "width": 400,
         "height": 150,
         "decorations": false,
@@ -57,7 +59,7 @@
         "url": "settings.html",
         "fullscreen": false,
         "resizable": false,
-        "title": "香澄的设置",
+        "title": "\u9999\u6f84\u7684\u8bbe\u7f6e",
         "width": 450,
         "height": 500,
         "decorations": false,
@@ -92,7 +94,9 @@
         "providerShortName": null,
         "signingIdentity": null
       },
-      "resources": ["characters/**"],
+      "resources": [
+        "characters/**"
+      ],
       "shortDescription": "",
       "targets": "all",
       "windows": {
