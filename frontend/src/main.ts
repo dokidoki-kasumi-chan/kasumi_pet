@@ -996,11 +996,16 @@ function startLateNightChecker(): void {
     if (isSleepTime()) {
       if (currentState !== 'SLEEP') {
         console.log('=== Auto: SLEEP (深夜模式 00:00-08:00) ===');
+        // 核武器：清除所有锁，保证 SLEEP 不被任何状态拦截
+        responseLocked = false;
+        isThinkingLocked = false;
+        bubblePermanent = false;
+        isInputting = false;
+        if (responseLockTimer) { clearTimeout(responseLockTimer); responseLockTimer = null; }
+        if (cleanupTimer) { clearTimeout(cleanupTimer); cleanupTimer = null; }
         // 停止可能正在跑的番茄钟（避免倒计时覆盖 zzz 气泡）
         if (pomodoroTimer) { clearInterval(pomodoroTimer); pomodoroTimer = null; }
         pomodoroActive = false;
-        // 先退出输入模式，避免 canChangeState 拦截 SLEEP
-        isInputting = false;
         if (inputArea) inputArea.classList.add('hidden');
         // 隐藏所有按钮
         if (chatBtn) chatBtn.classList.add('hidden');
@@ -1008,7 +1013,23 @@ function startLateNightChecker(): void {
         if (pomodoroBtn) { pomodoroBtn.textContent = '番茄钟？'; pomodoroBtn.classList.add('hidden'); }
         // 清理剪贴板助手 timer
         if (clipboardHelpTimer) { clearTimeout(clipboardHelpTimer); clipboardHelpTimer = null; }
-        updatePetState('SLEEP');
+        // 直接操纵 DOM 和状态，不依赖 canChangeState（SLEEP 必须是不可拦截的）
+        const hidden = getHiddenSprite();
+        if (hidden) {
+          spriteSwitching = true;
+          const config = getStateConfig()['SLEEP'] || getStateConfig()['IDLE'];
+          const onDone = () => {
+            const active = getActiveSprite();
+            if (active) active.classList.remove('visible');
+            hidden.classList.add('visible');
+            activeSpriteSlot = activeSpriteSlot === 'a' ? 'b' : 'a';
+            spriteSwitching = false;
+          };
+          hidden.onload = onDone;
+          hidden.onerror = onDone;
+          hidden.src = config.image;
+        }
+        currentState = 'SLEEP';
         updateBubble('💤');
         if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
       }
@@ -1020,7 +1041,7 @@ function startLateNightChecker(): void {
         showGreetingMessage();
       }
     }
-  }, 60 * 1000); // 每分钟检查
+  }, 30 * 1000); // 每 30 秒检查
 }
 
 /**
