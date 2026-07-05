@@ -6,7 +6,7 @@
 
 | 层 | 技术 | 规模 |
 |----|------|------|
-| 前端 | TypeScript + Vite | ~1400 行状态机 |
+| 前端 | TypeScript + Vite | ~1470 行状态机 |
 | 后端 | Rust (Tauri v1) | ~640 行，18 个命令 |
 | AI | 多 Provider HTTP 直连 | 智谱/OpenAI/DeepSeek/Anthropic |
 | 桌面 | Tauri (macOS) | NSWorkspace / CGWindowList / AppleScript |
@@ -45,7 +45,7 @@
 - **references/**：状态机文档，主文件只放骨架，细节按需读取
 
 ### 单文件状态机策略
-`main.ts` (~1400 行) 集中管理所有状态和交互。Agent 改一个功能只需读一个文件，不需要跨文件跳转。代价是文件长，但 AI 处理长文件比处理分散逻辑更可靠。
+`main.ts` (~1470 行) 集中管理所有状态和交互。Agent 改一个功能只需读一个文件，不需要跨文件跳转。代价是文件长，但 AI 处理长文件比处理分散逻辑更可靠。
 
 ## AI API 集成
 
@@ -61,7 +61,7 @@
 
 ### 可靠性设计
 - **30s AbortController 超时**：防止 API 挂死
-- **60s 安全看门狗**：超时后强制恢复 IDLE + 弹错误提示，绝对不死锁
+- **60s 安全看门狗**：超时后清理 isThinkingLocked + responseLocked + bubblePermanent，走 resetToIdle 强制恢复，永不死锁
 - **多格式响应兼容**：`choices[0].message.content` / `delta.content` / 顶层 `content` 逐级 fallback
 - **长消息拦截**：>2000 字直接拒绝，不发 API（控制 token 成本）
 
@@ -81,23 +81,31 @@
 
 ```
 响应锁 (responseLocked)    ← AI 回答后 1min，最高优先级
-思考锁 (isThinkingLocked)  ← LLM 调用期间
+思考锁 (isThinkingLocked)  ← LLM 调用期间 + CELEBRATE→HAPPY 过渡窗口
 输入锁 (isInputting)       ← 用户输入期间
-冷却层 (STATE_COOLDOWN)    ← 5s 防抖
+冷却层 (STATE_COOLDOWN)    ← 5s 防抖，CELEBRATE/HAPPY 豁免
+SLEEP 守卫                ← canChangeState 内置，不可被定时器路径穿透
 ```
 
 白名单机制：系统自动状态（THINKING/CELEBRATE/HAPPY/SLEEP/IDLE）可穿透对应锁层，用户交互（单击/双击/悬停/剪贴板）被拦截。
 
 ### 睡眠系统（00:00-08:00）
 
-14 个拦截点全覆盖：点击 pet、点击空白、双击空白、悬停、发消息、进输入模式、活动检测、剪贴板检测、番茄钟提示、空闲打哈欠、空闲唤醒检测（idle ≥ 2h = 熄屏唤醒）、休息提醒（天然避开 9-22）。
+三层防护：
+1. **canChangeState 集中守卫**（C1：SLEEP 状态下任何新状态必须为 SLEEP 或 IDLE，定时器路径无法绕过）
+2. **14 个事件拦截点**：点击 pet、点击空白、双击空白、悬停、发消息、进输入模式、活动检测、剪贴板检测、番茄钟提示、空闲打哈欠、空闲唤醒检测、休息提醒
+3. **双重睡眠检测**：`startLateNightChecker` + `isSleepTime()` 双重校验
 
 入睡时先停番茄钟、退输入模式、隐按钮，再设 SLEEP。锁到期若仍在睡眠时段自动回 SLEEP 而非 IDLE。醒来时无条件恢复按钮（不依赖 currentState）。
 
 ### 防御性设计
-- **看门狗**：60s 后 API 无响应强制恢复，永不死锁
+- **看门狗**（M3+M4）：60s 后同时清理 isThinkingLocked / responseLocked / bubblePermanent / responseLockTimer，走 resetToIdle 而非分两步恢复
 - **空闲唤醒检测**：idle ≥ 120min 判定为熄屏唤醒，重置计时而非触发 SLEEP
 - **跨天窗口兼容**：`isSleepTime()` 同时处理同天窗口（0-8，用 `&&`）和跨天窗口（23-6，用 `||`）
+- **番茄钟重入保护**（M7）：`endCurrentPhase` 入口检查 `pomodoroActive`，时间回拨或并发调用不乱跳阶段
+
+### 剪贴板分类算法（v2.9 修复）
+每 3 秒轮询，检测三项：code / error / english。v2.9 修复了 `englishRatio` 分子未截断问题：原代码 `englishChars / Math.min(totalChars, 500)` 中分子为全部英文字符未被截断，长文本中英混合内容比率被夸大。修复后分子分母均截断 500。
 
 ## 全栈闭环能力
 
@@ -134,3 +142,4 @@
 | v2.6 | 长消息拦截 + 60s 安全看门狗 |
 | v2.7 | 开源发布 + 设置面板模型下拉 + macOS 已损坏修复指引 |
 | v2.8 | 睡眠系统全面加固（14 拦截点 + 启动直入 + 锁不挡 + 按钮恢复） |
+| v2.9 | 状态机审计修复 — SLEEP 守卫/看门狗清理/番茄钟保护/剪贴板阈值 |
