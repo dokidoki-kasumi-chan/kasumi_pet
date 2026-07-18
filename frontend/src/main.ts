@@ -107,6 +107,15 @@ function handleSlackingEnd(): void {
 
 function startActivityMonitor(): void {
   window.setInterval(async () => {
+    // 睡眠看门狗：不在睡眠时段却是 SLEEP → 强制唤醒（兜底 late night checker 漏唤醒）
+    if (!isSleepTime() && currentState === 'SLEEP') {
+      console.log('=== Sleep Watchdog: 异常 SLEEP，强制唤醒 ===');
+      if (chatBtn) chatBtn.classList.remove('hidden');
+      updatePetState('IDLE');
+      showGreetingMessage();
+      return;
+    }
+
     if (isSleepTime() || responseLocked || isThinkingLocked || isInputting || currentState === 'SLEEP') return;
 
     // 1. B站摸鱼检测
@@ -977,12 +986,16 @@ function startRestReminderChecker(): void {
 function startMealReminderChecker(): void {
   // 午饭时间
   scheduleDailyTask(getSchedule().lunchTime, () => {
+    const hour = new Date().getHours();
+    if (hour < 11 || hour > 13) return; // 定时器漂移，不在午饭窗口
     console.log('=== Auto: EATING (午饭) ===');
     updatePetState('EATING', getReminderQuote('lunch'));
   });
 
   // 晚饭时间
   scheduleDailyTask(getSchedule().dinnerTime, () => {
+    const hour = new Date().getHours();
+    if (hour < 17 || hour > 20) return; // 定时器漂移，不在晚饭窗口
     console.log('=== Auto: EATING (晚饭) ===');
     updatePetState('EATING', getReminderQuote('dinner'));
   });
